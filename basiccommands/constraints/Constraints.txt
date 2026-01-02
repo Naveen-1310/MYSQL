@@ -1,0 +1,242 @@
+
+1. PRIMARY KEY Constraint
+==========================
+When trying to insert a duplicate value into a PRIMARY KEY column, it will fail because primary keys must be unique.
+
+Example:
+sql
+CREATE TABLE rides (
+    ride_id INT PRIMARY KEY,
+    driver_id INT NOT NULL,
+    rider_id INT NOT NULL,
+    pickup_location VARCHAR(100) NOT NULL,
+    dropoff_location VARCHAR(100) NOT NULL,
+    ride_date DATETIME NOT NULL,
+    fare DECIMAL(10, 2) NOT NULL
+);
+
+
+Insert Data (Valid)
+sql
+INSERT INTO rides (ride_id, driver_id, rider_id, pickup_location, dropoff_location, ride_date, fare)
+VALUES
+(1, 101, 201, 'Chennai', 'Coimbatore', '2024-12-29 08:00:00', 500.00);
+
+
+ Insert Data (Fails due to duplicate ride_id)
+sql
+INSERT INTO rides (ride_id, driver_id, rider_id, pickup_location, dropoff_location, ride_date, fare)
+VALUES
+(1, 102, 202, 'Bangalore', 'Hyderabad', '2024-12-29 10:00:00', 800.00);
+
+
+Explanation:  
+The second INSERT statement will fail because the ride_id is a PRIMARY KEY, and 1 is already used in the table. Primary keys must be unique.
+
+---
+
+2. UNIQUE Constraint 
+=======================
+The UNIQUE constraint ensures that no two rows can have the same value in a column, but allows NULL values. If you try to insert a duplicate value in a column with a UNIQUE constraint, it will fail.
+
+ Example:
+sql
+CREATE TABLE users (
+    user_id INT PRIMARY KEY,
+    email VARCHAR(100) UNIQUE
+);
+
+
+
+INSERT INTO users (user_id, email)
+VALUES (1, 'user1@example.com');  -- First row, valid unique email
+
+INSERT INTO users (user_id, email)
+VALUES (2, 'user2@example.com');  -- Second row, valid unique email
+
+INSERT INTO users (user_id, email)
+VALUES (3, NULL);  -- Third row, valid as NULL is allowed
+
+INSERT INTO users (user_id, email)
+VALUES (4, 'user1@example.com');  -- Fails, duplicate non-NULL email
+
+INSERT INTO users (user_id, email)
+VALUES (5, NULL);  -- Valid, second NULL value is allowed
+
+Explanation:
+You can insert multiple NULL values because NULL is not considered a value in the traditional sense, so they are treated as distinct.
+
+However, non-NULL values must be unique in the column.
+In this example:
+
+The email column can have one or more NULL values, but each non-NULL email must be unique.
+---
+
+ 3. NOT NULL Constraint Failure
+
+The NOT NULL constraint ensures that a column cannot contain NULL values. If you try to insert a NULL value into a NOT NULL column, the operation will fail.
+
+ Example:
+sql
+CREATE TABLE rides (
+    ride_id INT PRIMARY KEY,
+    driver_id INT NOT NULL,
+    rider_id INT NOT NULL,
+    pickup_location VARCHAR(100) NOT NULL,
+    dropoff_location VARCHAR(100) NOT NULL,
+    ride_date DATETIME NOT NULL,
+    fare DECIMAL(10, 2) NOT NULL
+);
+
+
+ Insert Data (Valid)
+sql
+INSERT INTO rides (ride_id, driver_id, rider_id, pickup_location, dropoff_location, ride_date, fare)
+VALUES
+(3, 103, 203, 'Coimbatore', 'Chennai', '2024-12-29 14:00:00', 600.00);
+
+
+ Insert Data (Fails due to NULL in pickup_location)
+sql
+INSERT INTO rides (ride_id, driver_id, rider_id, pickup_location, dropoff_location, ride_date, fare)
+VALUES
+(4, 104, 204, NULL, 'Chennai', '2024-12-29 16:00:00', 700.00);
+
+
+Explanation:  
+The second INSERT will fail because pickup_location is defined as NOT NULL, and NULL is being inserted, which violates the constraint.
+
+
+
+ 
+---
+3. Check Constraint
+===================
+A "CHECK constraint" in SQL is a database constraint that enforces a specific condition on data within a table, ensuring that only values meeting that condition can be inserted or updated, thereby maintaining data integrity and consistency
+
+CHECK: Ensure that the fare is a positive number for each ride.
+CREATE TABLE riders (
+    rider_id INT PRIMARY KEY,
+    rider_name VARCHAR(100) NOT NULL,
+    email VARCHAR(100) UNIQUE NOT NULL
+);
+
+CREATE TABLE rides (
+    ride_id INT PRIMARY KEY,
+    driver_id INT NOT NULL,
+    rider_id INT,
+    pickup_location VARCHAR(100) NOT NULL,
+    dropoff_location VARCHAR(100) NOT NULL,
+    ride_date DATETIME NOT NULL,
+    fare DECIMAL(10, 2) CHECK (fare > 0),
+    FOREIGN KEY (rider_id) REFERENCES riders(rider_id)
+);
+
+4. Foreign Key Constraint
+============================
+Scenario: One Foreign Key (Driver to Ride Relationship)
+We’ll now establish a one-to-many relationship between `drivers` and `rides`, where one driver can have many rides.
+
+DDL (Create Table Statements):
+
+
+-- Creating the drivers table
+CREATE TABLE drivers (
+    driver_id INT PRIMARY KEY,
+    driver_name VARCHAR(100),
+    license_number VARCHAR(50) UNIQUE
+);
+
+-- Creating the rides table with driver_id as a foreign key
+CREATE TABLE rides (
+    ride_id INT PRIMARY KEY,
+    driver_id INT,
+    pickup_location VARCHAR(100),
+    dropoff_location VARCHAR(100),
+    ride_date DATETIME,
+    fare DECIMAL(10, 2),
+    FOREIGN KEY (driver_id) REFERENCES drivers(driver_id)
+);
+
+
+Inserts (Successful Insertion):
+
+
+-- Inserting drivers
+INSERT INTO drivers (driver_id, driver_name, license_number)
+VALUES (101, 'John Doe', 'XYZ12345'), (102, 'Jane Smith', 'ABC67890');
+
+-- Inserting rides associated with each driver
+INSERT INTO rides (ride_id, driver_id, pickup_location, dropoff_location, ride_date, fare)
+VALUES
+(301, 101, 'Chennai', 'Coimbatore', '2024-12-01 08:00:00', 500.00),
+(302, 101, 'Chennai', 'Madurai', '2024-12-01 09:30:00', 600.00),
+(303, 102, 'Bangalore', 'Hyderabad', '2024-12-02 10:00:00', 700.00);
+
+
+Expected Output (Successful JOIN):
+
+To retrieve the details of the rides along with the driver's information, we can use an INNER JOIN:
+
+
+SELECT r.ride_id, r.pickup_location, r.dropoff_location, r.ride_date, r.fare, d.driver_name
+FROM rides r
+INNER JOIN drivers d ON r.driver_id = d.driver_id;
+
+
+Failure Case (Foreign Key Violation on Insert):
+
+If you try to insert a ride with a non-existing `driver_id` that doesn’t exist in the `drivers` table, it will fail due to the foreign key constraint:
+
+DEFAULT
+=======
+Sure! Let’s go through an example of using the `DEFAULT` constraint in SQL, which allows you to specify a default value for a column when no value is provided during an `INSERT`.
+
+Example: Using `DEFAULT` with `CREATE TABLE` and `INSERT`
+
+Let’s create a table named `customers`, where the `country` column has a default value of `'India'` in case no value is provided during insertion.
+
+1. Create Table with Default Value:
+
+
+CREATE TABLE customers (
+    customer_id INT PRIMARY KEY,
+    customer_name VARCHAR(100),
+    country VARCHAR(50) DEFAULT 'India'
+);
+
+
+- The `country` column has a default value of `'India'`. If you don’t specify a value for `country` while inserting, it will automatically take the default value `'India'`.
+
+2. Insert Data with and without Specifying `country`:
+
+- Inserting data with `country` specified:
+
+
+INSERT INTO customers (customer_id, customer_name, country)
+VALUES (1, 'John Doe', 'USA');
+
+
+- Inserting data without specifying `country`:
+
+
+INSERT INTO customers (customer_id, customer_name)
+VALUES (2, 'Jane Smith');
+
+
+3. Resulting Data in `customers` Table:
+
+- After executing both `INSERT` statements, the `customers` table will look like this:
+
+| customer_id | customer_name | country |
+|-------------|---------------|---------|
+| 1           | John Doe      | USA     |
+| 2           | Jane Smith    | India   |
+
+- In the second row, since no `country` value was provided, the default value `'India'` was automatically used for the `country` column.
+
+Summary of Key Points:
+
+- `DEFAULT` allows you to set a default value for a column if no value is provided during an `INSERT`.
+- In this case, when inserting a customer without specifying the `country`, it automatically uses `'India'`.
+
